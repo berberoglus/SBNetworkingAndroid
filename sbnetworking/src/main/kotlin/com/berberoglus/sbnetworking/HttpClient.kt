@@ -1,5 +1,6 @@
 package com.berberoglus.sbnetworking
 
+import com.berberoglus.sbnetworking.auth.TokenAuthenticator
 import com.berberoglus.sbnetworking.internal.appJson
 import com.berberoglus.sbnetworking.internal.decodeOrThrow
 import com.berberoglus.sbnetworking.internal.nullIfEmpty
@@ -22,6 +23,7 @@ class HttpClient internal constructor(
     val authTokenProvider: AuthTokenProvider?,
     val okHttpClient: OkHttpClient,
     val retrofit: Retrofit,
+    internal val tokenAuthenticator: TokenAuthenticator? = null,
 ) {
     /**
      * Decodes the JSON body to [R]; null on 204. If [R] is [ByteArray] the raw success body is
@@ -82,9 +84,13 @@ class HttpClient internal constructor(
         val response = try {
             call.await()
         } catch (e: IOException) {
+            // A failed token refresh inside the authenticator is captured rather than thrown, so
+            // surface the original refresh error before falling back to transport-error mapping.
+            tokenAuthenticator?.consumeRefreshError()?.let { throw it }
             throw mapIoException(e)
         }
         response.use { resp ->
+            tokenAuthenticator?.consumeRefreshError()?.let { throw it }
             val bytes = resp.body?.bytes() ?: ByteArray(0)
             return validateAndExtractBody(resp.code, bytes)
         }

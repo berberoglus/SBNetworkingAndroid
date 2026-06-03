@@ -34,12 +34,16 @@ class HttpClientBuilder internal constructor(
         val baseUrl = environment.baseHttpUrl()
             ?: throw HttpClientError.InvalidUrl
 
+        // One authenticator instance, shared by OkHttp and the call-adapter factory, so a failed
+        // refresh captured during authentication can be surfaced by the call paths.
+        val tokenAuthenticator = TokenAuthenticator(authTokenProvider)
+
         val clientBuilder = (baseOkHttpClient?.newBuilder() ?: OkHttpClient.Builder())
             .connectTimeout(connectTimeoutSeconds, TimeUnit.SECONDS)
             .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
             .writeTimeout(writeTimeoutSeconds, TimeUnit.SECONDS)
             .addInterceptor(AuthInterceptor(authTokenProvider))
-            .authenticator(TokenAuthenticator(authTokenProvider))
+            .authenticator(tokenAuthenticator)
 
         if (enableLogging) {
             clientBuilder.addInterceptor(
@@ -52,11 +56,11 @@ class HttpClientBuilder internal constructor(
             .baseUrl(baseUrl)
             .client(okHttpClient)
             // Normalize Retrofit *Api failures into HttpClientError; must precede the default adapter.
-            .addCallAdapterFactory(HttpClientCallAdapterFactory())
+            .addCallAdapterFactory(HttpClientCallAdapterFactory(tokenAuthenticator))
             .addConverterFactory(appJson.asConverterFactory(JSON_MEDIA_TYPE))
             .build()
 
-        return HttpClient(environment, authTokenProvider, okHttpClient, retrofit)
+        return HttpClient(environment, authTokenProvider, okHttpClient, retrofit, tokenAuthenticator)
     }
 
     private companion object {
