@@ -40,8 +40,7 @@ private class NormalizingCall<T>(
     override fun enqueue(callback: Callback<T>) {
         delegate.enqueue(object : Callback<T> {
             override fun onResponse(call: Call<T>, response: Response<T>) {
-                // Retrofit treats only 200..299 as successful; 304 must also pass through as success
-                // (iOS validateResponse maps 200..299 AND 304 to success).
+                // Retrofit treats only 200..299 as successful; 304 must also pass through as success.
                 if (response.isSuccessful || response.code() == 304) {
                     callback.onResponse(call, response)
                 } else {

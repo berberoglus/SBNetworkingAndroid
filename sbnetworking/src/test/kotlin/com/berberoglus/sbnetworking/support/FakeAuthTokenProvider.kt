@@ -2,7 +2,7 @@ package com.berberoglus.sbnetworking.support
 
 import com.berberoglus.sbnetworking.AuthTokenProvider
 
-/** Mirrors the iOS MockAuthTokenProvider (configurable refresh success/throw). */
+/** Test double for [AuthTokenProvider] with configurable refresh success/throw. */
 class FakeAuthTokenProvider(
     override var accessToken: String?,
     override var refreshToken: String?,

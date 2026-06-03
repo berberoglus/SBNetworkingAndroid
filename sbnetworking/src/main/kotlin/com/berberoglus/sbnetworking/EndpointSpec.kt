@@ -1,10 +1,9 @@
 package com.berberoglus.sbnetworking
 
 /**
- * A transport-level description of a single request — the Android value-type analog of the iOS
- * `Endpoint` protocol's stored data. Feature code normally uses Retrofit `*Api` interfaces
- * (see Networking_Domain_Rules.md §3); [EndpointSpec] exists for dynamic/programmatic requests
- * and to preserve the iOS generic-client capability.
+ * An immutable, transport-level description of a single request. Feature code normally uses Retrofit
+ * `*Api` interfaces (see Networking_Domain_Rules.md §3); [EndpointSpec] exists for dynamic or
+ * programmatic requests built and sent through [HttpClient.execute].
  */
 data class EndpointSpec(
     val path: String,

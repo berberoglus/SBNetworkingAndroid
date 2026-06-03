@@ -18,7 +18,7 @@ package com.berberoglus.sbnetworking
  * this library's [com.berberoglus.sbnetworking.auth.TokenAuthenticator]. Refreshing through the same
  * authenticated [HttpClient] would let a 401 from the refresh endpoint recurse into the authenticator.
  * The `responseCount` guard in `TokenAuthenticator` bounds retries, but the separate-client rule is
- * the consumer's responsibility — exactly as in iOS, where `refresh()` is consumer-supplied.
+ * the consumer's responsibility, since `refresh()` is consumer-supplied.
  */
 interface AuthTokenProvider {
     val accessToken: String?

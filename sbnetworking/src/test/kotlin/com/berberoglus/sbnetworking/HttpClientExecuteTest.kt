@@ -79,7 +79,7 @@ class HttpClientExecuteTest {
     }
 
     @Test fun `execute of ByteArray returns raw body unchanged`() = runTest {
-        // iOS `responseType is Data.Type` passthrough (behavior #10): bytes are NOT JSON-decoded.
+        // A ByteArray response type returns the raw body without JSON decoding.
         server.enqueue(MockResponse().setResponseCode(200).setBody("raw-not-json"))
         val bytes = client.execute<ByteArray>(EndpointSpec(path = "/raw", method = HttpMethod.GET))
         assertThat(bytes).isNotNull()
@@ -109,7 +109,7 @@ class HttpClientExecuteTest {
     }
 
     @Test fun `transport disconnect maps to HttpClientError`() = runTest {
-        // iOS URLError -> notConnectedToInternet/networkConnectionLost (behavior #20).
+        // A transport failure maps to a typed HttpClientError (NotConnectedToInternet / NetworkConnectionLost).
         server.enqueue(MockResponse().apply { socketPolicy = SocketPolicy.DISCONNECT_AT_START })
         assertThrows(HttpClientError::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -121,7 +121,7 @@ class HttpClientExecuteTest {
     }
 
     @Test fun `per-endpoint timeout aborts slow response`() = runTest {
-        // iOS Endpoint.timeoutInterval applied as an OkHttp call timeout (behavior #24).
+        // EndpointSpec.timeoutSeconds is applied as an OkHttp per-call timeout.
         server.enqueue(MockResponse().setBody("""{"resultCount":1}""").setBodyDelay(5, TimeUnit.SECONDS))
         assertThrows(HttpClientError::class.java) {
             kotlinx.coroutines.runBlocking {

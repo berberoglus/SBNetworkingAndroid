@@ -27,8 +27,7 @@ class HttpClient internal constructor(
 ) {
     /**
      * Decodes the JSON body to [R]; null on 204. If [R] is [ByteArray] the raw success body is
-     * returned unchanged — the faithful port of the iOS `responseType is Data.Type` passthrough
-     * (behavior #10). @throws HttpClientError
+     * returned unchanged, without JSON decoding. @throws HttpClientError
      */
     suspend inline fun <reified R : Any> execute(spec: EndpointSpec): R? {
         val raw = executeRaw(spec) ?: return null
@@ -42,7 +41,7 @@ class HttpClient internal constructor(
     internal fun buildRequest(spec: EndpointSpec): Request {
         val base = environment.baseHttpUrl() ?: throw HttpClientError.InvalidUrl
         val urlBuilder = base.newBuilder()
-        // iOS sets components.path = endpoint.path (replaces the path entirely).
+        // Replace the base URL's path entirely with the endpoint path.
         urlBuilder.encodedPath(normalizedPath(spec.path))
         spec.queryParameters.nullIfEmpty()?.forEach { (k, v) -> urlBuilder.addQueryParameter(k, v) }
         val url = urlBuilder.build()
@@ -62,9 +61,8 @@ class HttpClient internal constructor(
     }
 
     /**
-     * OkHttp rejects a null body for methods that require one (POST/PUT/PATCH). iOS allowed a
-     * bodyless POST; reproduce that by sending an empty body for those verbs (bodySize == 0),
-     * while GET/DELETE keep a null body.
+     * OkHttp rejects a null body for methods that require one (POST/PUT/PATCH), so send an empty
+     * body for those verbs (bodySize == 0) to allow a bodyless request; GET/DELETE keep a null body.
      */
     internal fun emptyBodyFor(method: HttpMethod) = when (method) {
         HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH -> ByteArray(0).toRequestBody(null)
@@ -74,7 +72,7 @@ class HttpClient internal constructor(
     /** Sends [spec], returns the raw success body (null on 204), maps failures to HttpClientError. */
     suspend fun executeRaw(spec: EndpointSpec): ByteArray? {
         val request = buildRequest(spec)
-        // Apply the per-endpoint timeout (iOS `Endpoint.timeoutInterval`, default 20s) as an OkHttp
+        // Apply the per-endpoint timeout (EndpointSpec.timeoutSeconds, default 20s) as an OkHttp
         // call timeout, derived from the shared, auth-configured client so the auth interceptor +
         // 401 authenticator still apply.
         val call = okHttpClient.newBuilder()
@@ -82,8 +80,8 @@ class HttpClient internal constructor(
             .build()
             .newCall(request)
         // Read the full body inside the try so a transport error during the body read (e.g. the
-        // per-call timeout's InterruptedIOException) is mapped too — iOS reads the body within its
-        // do/catch, so a body-read failure becomes a typed error rather than leaking an IOException.
+        // per-call timeout's InterruptedIOException) is also mapped to a typed HttpClientError
+        // rather than leaking a raw IOException.
         val (statusCode, bytes) = try {
             call.await().use { resp -> resp.code to (resp.body?.bytes() ?: ByteArray(0)) }
         } catch (e: IOException) {

@@ -20,7 +20,7 @@ internal val appJson: Json = Json {
 /** Media type for the Retrofit kotlinx-serialization converter and dynamic request bodies. */
 internal val JSON_MEDIA_TYPE = "application/json".toMediaType()
 
-/** Decodes [bytes] to [T] or throws [HttpClientError.DecodingFailed] (iOS decodingFailed parity). */
+/** Decodes [bytes] to [T] or throws [HttpClientError.DecodingFailed] on any failure. */
 @PublishedApi
 internal inline fun <reified T> Json.decodeOrThrow(bytes: ByteArray): T =
     try {

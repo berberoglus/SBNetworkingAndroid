@@ -2,7 +2,7 @@ package com.berberoglus.sbnetworking
 
 /**
  * Maps an HTTP status code + body to either success (returns the body, possibly empty) or a thrown
- * [HttpClientError]. Faithful port of the iOS `HTTPClient.validateResponse`:
+ * [HttpClientError]:
  * - 200..299, 304 -> success (return body)
  * - 204 -> success with null body (empty)
  * - 401 -> Unauthorized

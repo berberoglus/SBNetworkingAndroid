@@ -27,7 +27,7 @@ class HttpClientBuilder internal constructor(
     fun readTimeoutSeconds(seconds: Long) = apply { this.readTimeoutSeconds = seconds }
     fun writeTimeoutSeconds(seconds: Long) = apply { this.writeTimeoutSeconds = seconds }
 
-    /** Inject a base OkHttpClient (the analog of injecting iOS `URLSession` for tests). */
+    /** Build on top of an existing OkHttpClient (custom TLS, interceptors, or tests). */
     fun okHttpClient(client: OkHttpClient) = apply { this.baseOkHttpClient = client }
 
     fun build(): HttpClient {

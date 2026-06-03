@@ -14,8 +14,7 @@ data class ITunesSearchResponseDto(
 
 @Serializable
 data class ITunesEntityDto(
-    // iTunes IDs exceed 32-bit Int (e.g. 6443366003); Swift Int is 64-bit, so the faithful
-    // Kotlin equivalent is Long.
+    // iTunes IDs exceed 32-bit Int range (e.g. 6443366003), so they are modelled as Long.
     val artistId: Long = 0,
     val trackId: Long = 0,
     val artistName: String = "",

@@ -5,10 +5,9 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
- * Attaches the `apikey` and `Authorization: Bearer` headers from an [AuthTokenProvider],
- * reproducing the iOS `HTTPClient.createDefaultRequest` header logic. Existing request headers
- * (e.g. ones set by the Retrofit `@Headers`/`@Header`) are preserved; auth headers are only added
- * when absent so an explicit per-call header wins.
+ * Attaches the `apikey` and `Authorization: Bearer` headers from an [AuthTokenProvider]. Existing
+ * request headers (e.g. ones set by the Retrofit `@Headers`/`@Header`) are preserved; auth headers
+ * are only added when absent so an explicit per-call header wins.
  */
 class AuthInterceptor(
     private val tokenProvider: AuthTokenProvider?,
