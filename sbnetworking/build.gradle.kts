@@ -39,10 +39,9 @@ android {
 }
 
 kotlin {
+    // Kotlin 2.x already emits real JVM default methods (the old -Xjvm-default=all is deprecated
+    // and unnecessary), so interface defaults like AuthTokenProvider.refresh() work out of the box.
     jvmToolchain(21)
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
 }
 
 dependencies {
