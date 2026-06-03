@@ -81,19 +81,19 @@ class HttpClient internal constructor(
             .callTimeout(spec.timeoutSeconds, TimeUnit.SECONDS)
             .build()
             .newCall(request)
-        val response = try {
-            call.await()
+        // Read the full body inside the try so a transport error during the body read (e.g. the
+        // per-call timeout's InterruptedIOException) is mapped too — iOS reads the body within its
+        // do/catch, so a body-read failure becomes a typed error rather than leaking an IOException.
+        val (statusCode, bytes) = try {
+            call.await().use { resp -> resp.code to (resp.body?.bytes() ?: ByteArray(0)) }
         } catch (e: IOException) {
             // A failed token refresh inside the authenticator is captured rather than thrown, so
             // surface the original refresh error before falling back to transport-error mapping.
             tokenAuthenticator?.consumeRefreshError()?.let { throw it }
             throw mapIoException(e)
         }
-        response.use { resp ->
-            tokenAuthenticator?.consumeRefreshError()?.let { throw it }
-            val bytes = resp.body?.bytes() ?: ByteArray(0)
-            return validateAndExtractBody(resp.code, bytes)
-        }
+        tokenAuthenticator?.consumeRefreshError()?.let { throw it }
+        return validateAndExtractBody(statusCode, bytes)
     }
 
     internal fun normalizedPath(path: String): String = when {

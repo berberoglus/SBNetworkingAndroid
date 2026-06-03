@@ -6,10 +6,12 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 class HttpClientExecuteTest {
 
@@ -101,6 +103,30 @@ class HttpClientExecuteTest {
             kotlinx.coroutines.runBlocking {
                 client.execute<com.berberoglus.sbnetworking.support.DummyResponseDto>(
                     EndpointSpec(path = "/x", method = HttpMethod.GET),
+                )
+            }
+        }
+    }
+
+    @Test fun `transport disconnect maps to HttpClientError`() = runTest {
+        // iOS URLError -> notConnectedToInternet/networkConnectionLost (behavior #20).
+        server.enqueue(MockResponse().apply { socketPolicy = SocketPolicy.DISCONNECT_AT_START })
+        assertThrows(HttpClientError::class.java) {
+            kotlinx.coroutines.runBlocking {
+                client.execute<com.berberoglus.sbnetworking.support.DummyResponseDto>(
+                    EndpointSpec(path = "/x", method = HttpMethod.GET),
+                )
+            }
+        }
+    }
+
+    @Test fun `per-endpoint timeout aborts slow response`() = runTest {
+        // iOS Endpoint.timeoutInterval applied as an OkHttp call timeout (behavior #24).
+        server.enqueue(MockResponse().setBody("""{"resultCount":1}""").setBodyDelay(5, TimeUnit.SECONDS))
+        assertThrows(HttpClientError::class.java) {
+            kotlinx.coroutines.runBlocking {
+                client.execute<com.berberoglus.sbnetworking.support.DummyResponseDto>(
+                    EndpointSpec(path = "/slow", method = HttpMethod.GET, timeoutSeconds = 1),
                 )
             }
         }
