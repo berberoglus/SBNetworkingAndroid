@@ -30,7 +30,7 @@ so feature modules only declare their own `*Api` interfaces and DTOs.
 
 - Android `minSdk` 28, `compileSdk` 36
 - JDK 21
-- AGP 9.2+, Kotlin 2.3+, Gradle 9.4+
+- AGP 9.2.1, Kotlin 2.3.21, Gradle 9.5.0
 
 ## Installation
 
