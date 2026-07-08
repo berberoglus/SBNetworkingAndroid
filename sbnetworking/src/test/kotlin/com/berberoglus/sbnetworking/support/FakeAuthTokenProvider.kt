@@ -7,6 +7,7 @@ class FakeAuthTokenProvider(
     override var accessToken: String?,
     override var refreshToken: String?,
     override var apiKey: String?,
+    override val apiKeyHeaderNames: List<String> = listOf("apikey"),
     private val supportsRefresh: Boolean = false,
     private val refreshError: Throwable? = null,
 ) : AuthTokenProvider {

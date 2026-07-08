@@ -5,9 +5,11 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
- * Attaches the `apikey` and `Authorization: Bearer` headers from an [AuthTokenProvider]. Existing
- * request headers (e.g. ones set by the Retrofit `@Headers`/`@Header`) are preserved; auth headers
- * are only added when absent so an explicit per-call header wins.
+ * Attaches the API-key header(s) and `Authorization: Bearer` from an [AuthTokenProvider]. The
+ * [AuthTokenProvider.apiKey] value is sent under every name in [AuthTokenProvider.apiKeyHeaderNames]
+ * (default `["apikey"]`). Existing request headers (e.g. ones set by the Retrofit
+ * `@Headers`/`@Header`) are preserved; auth headers are only added when absent so an explicit
+ * per-call header wins.
  */
 class AuthInterceptor(
     private val tokenProvider: AuthTokenProvider?,
@@ -16,9 +18,11 @@ class AuthInterceptor(
         val provider = tokenProvider ?: return chain.proceed(chain.request())
         val original = chain.request()
         val builder = original.newBuilder()
-        provider.apiKey
-            ?.takeIf { original.header(HEADER_API_KEY) == null }
-            ?.let { builder.header(HEADER_API_KEY, it) }
+        provider.apiKey?.let { key ->
+            provider.apiKeyHeaderNames.forEach { name ->
+                if (original.header(name) == null) builder.header(name, key)
+            }
+        }
         provider.accessToken
             ?.takeIf { original.header(HEADER_AUTHORIZATION) == null }
             ?.let { builder.header(HEADER_AUTHORIZATION, "Bearer $it") }
@@ -26,7 +30,6 @@ class AuthInterceptor(
     }
 
     private companion object {
-        const val HEADER_API_KEY = "apikey"
         const val HEADER_AUTHORIZATION = "Authorization"
     }
 }

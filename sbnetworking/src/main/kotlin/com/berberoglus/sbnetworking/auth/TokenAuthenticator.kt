@@ -50,7 +50,9 @@ class TokenAuthenticator(
                 return null
             }
             val builder = response.request.newBuilder()
-            provider.apiKey?.let { builder.header("apikey", it) }
+            provider.apiKey?.let { key ->
+                provider.apiKeyHeaderNames.forEach { name -> builder.header(name, key) }
+            }
             provider.accessToken?.let { builder.header("Authorization", "Bearer $it") }
             return builder.build()
         }

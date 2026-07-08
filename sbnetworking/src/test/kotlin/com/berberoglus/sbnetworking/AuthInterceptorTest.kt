@@ -31,6 +31,32 @@ class AuthInterceptorTest {
         assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer access_123")
     }
 
+    @Test fun `provider sends every configured api-key header name`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val provider = FakeAuthTokenProvider(
+            accessToken = "access_123",
+            refreshToken = null,
+            apiKey = "key_xyz",
+            apiKeyHeaderNames = listOf("apikey", "s-api-key"),
+        )
+        clientWith(provider).newCall(Request.Builder().url(server.url("/")).build()).execute().close()
+
+        val recorded = server.takeRequest()
+        assertThat(recorded.getHeader("apikey")).isEqualTo("key_xyz")
+        assertThat(recorded.getHeader("s-api-key")).isEqualTo("key_xyz")
+        assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer access_123")
+    }
+
+    @Test fun `default provider sends only the apikey header`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val provider = FakeAuthTokenProvider("access", null, "key_only")
+        clientWith(provider).newCall(Request.Builder().url(server.url("/")).build()).execute().close()
+
+        val recorded = server.takeRequest()
+        assertThat(recorded.getHeader("apikey")).isEqualTo("key_only")
+        assertThat(recorded.getHeader("s-api-key")).isNull()
+    }
+
     @Test fun `provider headers merge with existing request headers`() {
         server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
         val provider = FakeAuthTokenProvider("token", null, "key")

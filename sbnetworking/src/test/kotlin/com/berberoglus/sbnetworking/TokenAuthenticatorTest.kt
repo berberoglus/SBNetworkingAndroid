@@ -36,6 +36,25 @@ class TokenAuthenticatorTest {
         assertThat(provider.updateTokensCallCount).isEqualTo(1)
     }
 
+    @Test fun `retried request carries every configured api-key header`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"unauthorized"}"""))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"resultCount":1}"""))
+        val provider = FakeAuthTokenProvider(
+            "old_token",
+            "refresh_xyz",
+            "key",
+            apiKeyHeaderNames = listOf("apikey", "s-api-key"),
+            supportsRefresh = true,
+        )
+
+        apiWith(provider).dummyRetry()
+
+        server.takeRequest() // first request → 401
+        val retried = server.takeRequest()
+        assertThat(retried.getHeader("apikey")).isEqualTo("key")
+        assertThat(retried.getHeader("s-api-key")).isEqualTo("key")
+    }
+
     @Test fun `401 without provider throws Unauthorized`() = runTest {
         server.enqueue(MockResponse().setResponseCode(401))
         assertThrows(HttpClientError.Unauthorized::class.java) {
