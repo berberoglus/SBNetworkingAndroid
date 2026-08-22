@@ -1,9 +1,13 @@
 package com.berberoglus.sbnetworking
 
+import com.berberoglus.sbnetworking.auth.TokenAuthenticator
 import com.berberoglus.sbnetworking.support.FakeAuthTokenProvider
 import com.berberoglus.sbnetworking.support.TestApi
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -73,5 +77,26 @@ class TokenAuthenticatorTest {
         }
         val chain = generateSequence(error) { it.cause }
         assertThat(chain.any { it is RefreshBoom }).isTrue()
+    }
+
+    /**
+     * N concurrent 401s must produce ONE refresh: when a sibling call already refreshed while this
+     * response was in flight, the failed request's Bearer differs from the provider's current token
+     * and the authenticator must just retry with the fresh token — no second refresh round-trip.
+     */
+    @Test fun `stale 401 retries with the current token without refreshing`() {
+        val provider = FakeAuthTokenProvider("current_token", "refresh_xyz", "key", supportsRefresh = true)
+        val authenticator = TokenAuthenticator(provider)
+        val failed = Response.Builder()
+            .request(Request.Builder().url("http://localhost/x").header("Authorization", "Bearer stale_token").build())
+            .protocol(Protocol.HTTP_1_1)
+            .code(401)
+            .message("Unauthorized")
+            .build()
+
+        val retry = authenticator.authenticate(null, failed)
+
+        assertThat(retry!!.header("Authorization")).isEqualTo("Bearer current_token")
+        assertThat(provider.refreshCallCount).isEqualTo(0)
     }
 }

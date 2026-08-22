@@ -13,6 +13,8 @@ class FakeAuthTokenProvider(
 ) : AuthTokenProvider {
     var updateTokensCallCount = 0
         private set
+    var refreshCallCount = 0
+        private set
 
     override fun updateTokens(accessToken: String, refreshToken: String) {
         this.accessToken = accessToken
@@ -21,6 +23,7 @@ class FakeAuthTokenProvider(
     }
 
     override suspend fun refresh() {
+        refreshCallCount++
         refreshError?.let { throw it }
         if (!supportsRefresh) throw com.berberoglus.sbnetworking.HttpClientError.Unauthorized
         updateTokens(accessToken = "new_token", refreshToken = "new_refresh")

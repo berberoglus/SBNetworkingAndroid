@@ -43,19 +43,32 @@ class TokenAuthenticator(
         if (responseCount(response) >= MAX_ATTEMPTS) return null
 
         synchronized(this) {
+            // A sibling call may have refreshed while this response was in flight: when the
+            // FAILED request's Bearer no longer matches the provider's current token, just
+            // retry with the fresh one. Without this, N concurrent 401s serialized by this
+            // lock each run their own full refresh round-trip (Auth §3.2 dedup).
+            val current = provider.accessToken
+            val failedAuth = response.request.header("Authorization")
+            if (current != null && failedAuth != null && failedAuth != "Bearer $current") {
+                return retryRequest(response, provider)
+            }
             try {
                 runBlocking { provider.refresh() }
             } catch (t: Throwable) {
                 pendingRefreshError = t
                 return null
             }
-            val builder = response.request.newBuilder()
-            provider.apiKey?.let { key ->
-                provider.apiKeyHeaderNames.forEach { name -> builder.header(name, key) }
-            }
-            provider.accessToken?.let { builder.header("Authorization", "Bearer $it") }
-            return builder.build()
+            return retryRequest(response, provider)
         }
+    }
+
+    private fun retryRequest(response: Response, provider: AuthTokenProvider): Request {
+        val builder = response.request.newBuilder()
+        provider.apiKey?.let { key ->
+            provider.apiKeyHeaderNames.forEach { name -> builder.header(name, key) }
+        }
+        provider.accessToken?.let { builder.header("Authorization", "Bearer $it") }
+        return builder.build()
     }
 
     private fun responseCount(response: Response): Int {
