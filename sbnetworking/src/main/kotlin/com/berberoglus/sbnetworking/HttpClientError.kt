@@ -14,8 +14,11 @@ sealed class HttpClientError(message: String?) : Exception(message) {
         override fun hashCode(): Int = 31 * statusCode + body.contentHashCode()
     }
 
+    // The body stays in the field only: exception messages travel further than
+    // intended (crash reports, log aggregation), so raw response text must not
+    // ride along in them.
     data class ServerError(val statusCode: Int, val body: ByteArray) :
-        HttpClientError("Server error (HTTP $statusCode)\nResponse data: ${body.decodeToString()}") {
+        HttpClientError("Server error (HTTP $statusCode)") {
         override fun equals(other: Any?): Boolean =
             other is ServerError && statusCode == other.statusCode && body.contentEquals(other.body)
         override fun hashCode(): Int = 31 * statusCode + body.contentHashCode()
