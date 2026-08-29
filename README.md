@@ -144,7 +144,9 @@ Status-code mapping: `200..299` and `304` succeed; `204` yields `null`; `401`→
 ### `AuthTokenProvider`
 
 The injection seam for authentication. Implement it (backed by your secure token storage) and pass
-it to the builder. When present, the client adds the `apikey` header (when `apiKey` is non-null) and
+it to the builder. When present, the client adds the `apiKey` value under **every header name in
+`apiKeyHeaderNames`** (default: the single `apikey` header; override the list when your backend
+expects additional names such as `s-api-key` — nothing is added while `apiKey` is null) and
 `Authorization: Bearer <accessToken>` (when `accessToken` is non-null), and on a 401 it calls
 `refresh()` and retries the request once.
 
